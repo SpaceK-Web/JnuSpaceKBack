@@ -1,0 +1,14 @@
+[providers]
+python = "3.12"
+
+[phases.setup]
+nixPkgs = ["ffmpeg", "pkg-config"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = []
+
+[phases.start]
+cmd = "python run.py"
