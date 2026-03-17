@@ -1,5 +1,6 @@
-[providers]
-python = "3.12"
+[[providers]]
+name = "python"
+version = "3.11"
 
 [phases.setup]
 nixPkgs = ["ffmpeg", "pkg-config"]
