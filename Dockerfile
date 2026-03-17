@@ -1,7 +1,9 @@
 FROM python:3.13-slim
 
-# FFmpeg 및 개발 라이브러리 설치
+# 빌드 도구 + FFmpeg 개발 라이브러리 설치
 RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
     ffmpeg \
     libavformat-dev \
     libavcodec-dev \
@@ -10,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     libavfilter-dev \
     libswscale-dev \
     libswresample-dev \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
