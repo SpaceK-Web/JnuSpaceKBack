@@ -2,6 +2,8 @@ from faster_whisper import WhisperModel
 import sys
 import os
 
+#일단 분석 먼저 해야 할 듯..
+
 def seconds_to_srt_time(seconds):
     """초 단위 시간을 SRT 파일 형식의 시간 문자열로 변환합니다."""
     hours = int(seconds // 3600)
@@ -35,7 +37,7 @@ def process_audio_to_srt(audio_file, model, srt_folder):
 
 model_size = "large-v3"
 # GPU에서 FP16으로 실행
-model = WhisperModel(model_size, device="cuda", compute_type="float16")
+model = WhisperModel(model_size, device="cpu", compute_type="float16")
 
 audio_folder = "."  # 현재 폴더 내의 오디오 파일들을 처리합니다.
 srt_folder = "SRT"  # SRT 파일을 저장할 폴더
