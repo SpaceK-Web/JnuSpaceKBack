@@ -2,6 +2,8 @@ FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y \
     build-essential \
+    python3-dev \
+    cmake \
     pkg-config \
     ffmpeg \
     libavformat-dev \
@@ -19,9 +21,6 @@ RUN pkg-config --list-all | grep -i av
 WORKDIR /app
 
 COPY requirements.txt .
-
-# av만 먼저 설치해서 에러 확인
-RUN pip install --verbose av
 
 RUN pip install --no-cache-dir -r requirements.txt
 

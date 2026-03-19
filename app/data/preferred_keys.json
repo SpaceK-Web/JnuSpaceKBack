@@ -1,0 +1,110 @@
+[
+  {
+    "key": "아침식사",
+    "description": "아침에 먹은 음식",
+    "examples": ["죽 먹었어", "빵 먹었어", "아침 굶었어"],
+    "not_examples": ["영양제 먹었어"]
+  },
+  {
+    "key": "점심식사",
+    "description": "점심에 먹은 음식",
+    "examples": ["갈비탕 먹었어", "점심 먹었어"],
+    "not_examples": []
+  },
+  {
+    "key": "저녁식사",
+    "description": "저녁에 먹은 음식",
+    "examples": ["저녁에 라면 끓여 먹었어"],
+    "not_examples": []
+  },
+  {
+    "key": "간식",
+    "description": "식사 외에 먹은 간식류",
+    "examples": ["과자 먹었어", "떡 먹었어", "과일 먹었어"],
+    "not_examples": []
+  },
+  {
+    "key": "아침약복용",
+    "description": "아침 처방약(정제, 알약) 복용 여부. 영양제/건강보조식품 제외",
+    "examples": ["아침약 먹었어", "혈압약 먹었어"],
+    "not_examples": ["영양제 먹었어", "비타민 먹었어"]
+  },
+  {
+    "key": "점심약복용",
+    "description": "점심 처방약 복용 여부",
+    "examples": ["점심약 먹었어"],
+    "not_examples": []
+  },
+  {
+    "key": "저녁약복용",
+    "description": "저녁 처방약 복용 여부",
+    "examples": ["저녁약 먹었어"],
+    "not_examples": []
+  },
+  {
+    "key": "혈압",
+    "description": "혈압 측정 결과",
+    "examples": ["혈압이 130에 80이야", "혈압 쟀어"],
+    "not_examples": []
+  },
+  {
+    "key": "혈당",
+    "description": "혈당 측정 결과",
+    "examples": ["혈당이 120이야"],
+    "not_examples": []
+  },
+  {
+    "key": "수면",
+    "description": "수면 관련 정보 (잘 잤는지, 불면 등)",
+    "examples": ["어젯밤 잘 잤어", "새벽에 깼어", "잠을 못 잤어"],
+    "not_examples": []
+  },
+  {
+    "key": "운동",
+    "description": "산책, 체조 등 신체 활동",
+    "examples": ["산책 다녀왔어", "체조했어", "걸었어"],
+    "not_examples": []
+  },
+  {
+    "key": "외출",
+    "description": "집 밖으로 나간 활동 (병원, 마트 등)",
+    "examples": ["병원 다녀왔어", "마트 갔어", "경로당 갔어"],
+    "not_examples": []
+  },
+  {
+    "key": "방문자",
+    "description": "집에 방문한 사람",
+    "examples": ["아들이 왔어", "요양보호사 왔어", "이웃이 들렀어"],
+    "not_examples": []
+  },
+  {
+    "key": "통화",
+    "description": "전화 통화 내역",
+    "examples": ["딸한테 전화했어", "손자가 전화왔어"],
+    "not_examples": []
+  },
+  {
+    "key": "기분",
+    "description": "전반적 감정 상태",
+    "examples": ["기분 좋아", "오늘 우울해", "심심해"],
+    "not_examples": []
+  },
+  {
+    "key": "통증",
+    "description": "몸의 통증이나 불편감",
+    "examples": ["무릎이 아파", "머리가 띵해", "허리가 쑤셔"],
+    "not_examples": []
+  },
+  {
+    "key": "낙상",
+    "description": "넘어지거나 다친 사건",
+    "examples": ["넘어졌어", "미끄러졌어", "다쳤어"],
+    "not_examples": []
+  },
+  {
+    "key": "건강보조식품",
+    "description": "비타민, 영양제, 홍삼 등 처방약이 아닌 건강식품",
+    "examples": ["영양제 먹었어", "홍삼 먹었어", "비타민 먹었어"],
+    "not_examples": ["혈압약 먹었어"]
+  }
+]

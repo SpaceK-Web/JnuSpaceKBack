@@ -3,7 +3,7 @@ import os
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
-from main import app
+from app.main import app
 
 async def main():
     port = int(os.environ.get("PORT", 8080))
