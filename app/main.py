@@ -41,6 +41,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.mongodb import connect_mongodb, close_mongodb
 from app.database.redis_client import connect_redis, close_redis
+from app.database.postgres import connect_postgres, close_postgres
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.routers import conversation, dashboard
 
@@ -48,8 +49,9 @@ from app.routers import conversation, dashboard
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ── Startup ──
-    await connect_mongodb()
-    await connect_redis()
+    # await connect_mongodb()
+    # await connect_redis()
+    await connect_postgres()
     start_scheduler()
     print("🚀 서버 시작 완료")
 
@@ -57,8 +59,9 @@ async def lifespan(app: FastAPI):
 
     # ── Shutdown ──
     stop_scheduler()
-    await close_redis()
-    await close_mongodb()
+    # await close_redis()
+    # await close_mongodb()
+    await close_postgres()
     print("🛑 서버 종료 완료")
 
 
