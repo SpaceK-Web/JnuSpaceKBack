@@ -59,9 +59,8 @@ async def lifespan(app: FastAPI):
 
     # ── Shutdown ──
     stop_scheduler()
-    # await close_redis()
-    # await close_mongodb()
-    await close_postgres()
+    await close_redis()
+    await close_mongodb()
     print("🛑 서버 종료 완료")
 
 
