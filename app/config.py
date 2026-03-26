@@ -13,10 +13,10 @@ class Settings(BaseSettings):
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "senior_care"
     REDIS_URL: str = "redis://localhost:6379/0"
-    POSTGRES_USERNAME = "user"
-    POSTGRES_PASSWORD = "password"
-    POSTGRES_DATABASE = "database"
-    POSTGRES_HOST = "127.0.0.1"
+    POSTGRES_USERNAME: str = "user"
+    POSTGRES_PASSWORD: str = "password"
+    POSTGRES_DATABASE: str = "database"
+    POSTGRES_HOST: str = "127.0.0.1"
 
     class Config:
         env_file = ".env"
