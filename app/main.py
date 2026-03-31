@@ -49,7 +49,7 @@ from app.routers import conversation, dashboard
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ── Startup ──
-    # await connect_mongodb()
+    await connect_mongodb()
     # await connect_redis()
     await connect_postgres()
     start_scheduler()
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
     await close_postgres()
     # await close_redis()
-    # await close_mongodb()
+    await close_mongodb()
     print("🛑 서버 종료 완료")
 
 
