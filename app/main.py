@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     # ── Startup ──
     await connect_mongodb()
     # await connect_redis()
-    await connect_postgres()
+    #await connect_postgres()
     start_scheduler()
     print("🚀 서버 시작 완료")
 
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
 
     # ── Shutdown ──
     stop_scheduler()
-    await close_postgres()
+    #await close_postgres()
     # await close_redis()
     await close_mongodb()
     print("🛑 서버 종료 완료")
