@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # ─────────────────────────────────────
+  # 메인 애플리케이션
+  # ─────────────────────────────────────
+  app:
+    build: .
+    container_name: wemeet-app
+    ports:
+      - "8080:8080"
+    environment:
+      - LLM_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=mistral
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=senior_care
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_USERNAME=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DATABASE=senior_care
+      - POSTGRES_HOST=postgres
+      - PORT=8080
+    depends_on:
+      - mongodb
+      - ollama
+      - redis
+    networks:
+      - wemeet-network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────
+  # MongoDB (비정형 데이터베이스)
+  # ─────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: wemeet-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - wemeet-network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────
+  # Ollama (LLM 서버)
+  # ─────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wemeet-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - wemeet-network
+    restart: unless-stopped
+    # GPU가 있으면 아래 주석 해제
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ─────────────────────────────────────
+  # Ollama 초기화 (모델 자동 다운로드)
+  # ─────────────────────────────────────
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: wemeet-ollama-init
+    depends_on:
+      - ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - wemeet-network
+    entrypoint: >
+      sh -c "
+        echo '⏳ Ollama 서버 대기 중...'
+        sleep 10
+        echo '🦙 모델 다운로드 시작: mistral'
+        ollama pull mistral
+        echo '✅ 모델 다운로드 완료!'
+      "
+    restart: "no"
+
+  # ─────────────────────────────────────
+  # Redis (캐시/버퍼)
+  # ─────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: wemeet-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wemeet-network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────
+  # PostgreSQL (선택사항)
+  # ─────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: wemeet-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=senior_care
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wemeet-network
+    restart: unless-stopped
+
+# ─────────────────────────────────────
+# 볼륨
+# ─────────────────────────────────────
+volumes:
+  mongodb_data:
+  ollama_data:
+  redis_data:
+  postgres_data:
+
+# ─────────────────────────────────────
+# 네트워크
+# ─────────────────────────────────────
+networks:
+  wemeet-network:
+    driver: bridge
