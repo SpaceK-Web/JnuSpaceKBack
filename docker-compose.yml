@@ -11,7 +11,7 @@ services:
       - "8080:8080"
     environment:
       - LLM_PROVIDER=ollama
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://127.0.0.1:11434
       - OLLAMA_MODEL=mistral
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB_NAME=senior_care
@@ -23,11 +23,12 @@ services:
       - PORT=8080
     depends_on:
       - mongodb
-      - ollama
       - redis
     networks:
       - wemeet-network
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ─────────────────────────────────────
   # MongoDB (비정형 데이터베이스)
@@ -42,50 +43,6 @@ services:
     networks:
       - wemeet-network
     restart: unless-stopped
-
-  # ─────────────────────────────────────
-  # Ollama (LLM 서버)
-  # ─────────────────────────────────────
-  ollama:
-    image: ollama/ollama:latest
-    container_name: wemeet-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - wemeet-network
-    restart: unless-stopped
-    # GPU가 있으면 아래 주석 해제
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-
-  # ─────────────────────────────────────
-  # Ollama 초기화 (모델 자동 다운로드)
-  # ─────────────────────────────────────
-  ollama-init:
-    image: ollama/ollama:latest
-    container_name: wemeet-ollama-init
-    depends_on:
-      - ollama
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - wemeet-network
-    entrypoint: >
-      sh -c "
-        echo '⏳ Ollama 서버 대기 중...'
-        sleep 10
-        echo '🦙 모델 다운로드 시작: mistral'
-        ollama pull mistral
-        echo '✅ 모델 다운로드 완료!'
-      "
-    restart: "no"
 
   # ─────────────────────────────────────
   # Redis (캐시/버퍼)
@@ -124,7 +81,6 @@ services:
 # ─────────────────────────────────────
 volumes:
   mongodb_data:
-  ollama_data:
   redis_data:
   postgres_data:
 

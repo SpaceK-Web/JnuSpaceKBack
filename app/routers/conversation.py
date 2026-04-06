@@ -28,12 +28,15 @@ async def process_conversation(input_data: ConversationInput):
 
     # STEP 1 + 2: 추출
     entries = await extract_all(input_data.conversation)
+    print(entries)
 
     # STEP 3: 크리티컬 검증
     entries = await validate_critical(entries, input_data.conversation)
+    print(entries)
 
     # STEP 4: 감정 후처리
     entries = adjust_sentiments(entries, input_data.conversation)
+    print(entries)
 
     # 시스템 알림 분리
     system_alerts = [e for e in entries if e.get("is_system")]
