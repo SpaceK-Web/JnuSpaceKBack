@@ -1,5 +1,5 @@
 import re
-
+from app.models.schemas import EntryResponse
 
 # 규칙 기반 감정 보정 패턴
 CONCERN_PATTERNS = [
@@ -15,10 +15,9 @@ CONCERN_PATTERNS = [
 
 
 def adjust_sentiments(
-        entries: list[dict],
+        entries: list[EntryResponse],
         conversation: str
-) -> list[dict]:
-    """STEP 4: 규칙 기반 감정 후처리"""
+) -> list[EntryResponse]:
 
     for entry in entries:
         for pattern, forced_sentiment, reason in CONCERN_PATTERNS:
@@ -32,14 +31,13 @@ def adjust_sentiments(
                     entry["_sentiment_adjusted"] = True
                     entry["_adjustment_reason"] = reason
 
-    # ── 위험 감지 시 즉시 알림 플래그 ──
     has_danger = any(e.get("sentiment") == "위험" for e in entries)
     if has_danger:
-        entries.append({
-            "key": "_시스템알림",
-            "value": "위험 감정 감지됨 - 보호자 즉시 알림 필요",
-            "sentiment": "위험",
-            "is_system": True
-        })
+        entries.append(EntryResponse(
+            key="시스템알림",
+            value="위험 감정 감지됨 - 보호자 즉시 알림 필요",
+            sentiment="위험",
+            is_system=True
+        ))
 
     return entries

@@ -1,38 +1,17 @@
 import json
-import httpx
-from app.config import settings
 
-# 2차 검증이 필요한 크리티컬 키
+from app.models.schemas import EntryResponse
+
+#2차 검증이 필요한 크리티컬 키
 CRITICAL_KEYS = {
     "아침약복용", "점심약복용", "저녁약복용",
     "혈압", "혈당", "낙상", "통증"
 }
 
-
-async def _call_ollama(system_prompt: str, user_content: str) -> str:
-    """Ollama API 호출"""
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            f"{settings.OLLAMA_BASE_URL}/api/chat",
-            json={
-                "model": settings.OLLAMA_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content}
-                ],
-                "temperature": 0.0,
-                "stream": False
-            }
-        )
-        result = response.json()
-        return result.get("message", {}).get("content", "")
-
-
 async def validate_critical(
-        entries: list[dict],
+        entries: list[EntryResponse],
         conversation: str
-) -> list[dict]:
-    """STEP 3: 크리티컬 항목 2차 검증"""
+) -> list[EntryResponse]:
 
     critical_items = [e for e in entries if e["key"] in CRITICAL_KEYS]
 
@@ -73,11 +52,12 @@ async def validate_critical(
 
 위의 검증 대상들이 원본 대화와 일치하는지 검증하고 JSON 형식으로 반환하세요."""
 
-    response_text = await _call_ollama(system_prompt, user_content)
+    from app.services.llm_service import _call_ollama
+    response_text = await _call_ollama(system_prompt, user_content, 0.0)
 
     # JSON 추출
     import re
-    json_match = re.search(r'\{[\s\S]*\}', response_text)
+    json_match = re.search(r'\{[\s\S]*?}', response_text)
     if json_match:
         validations = json.loads(json_match.group())
     else:

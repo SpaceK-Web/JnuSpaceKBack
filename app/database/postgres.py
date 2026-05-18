@@ -1,20 +1,31 @@
+from contextlib import asynccontextmanager
+from typing import Optional
 import asyncpg
-from app.config import settings
 
-conn: asyncpg.Connection
-
-async def connect_postgres():
-    global conn
-    conn = await asyncpg.connect(user=settings.POSTGRES_USERNAME, password=settings.POSTGRES_PASSWORD, database=settings.POSTGRES_DATABASE, host=settings.POSTGRES_HOST)
-    print(f"✅ Postgres 연결됨: {settings.POSTGRES_DATABASE}")
+# 전역 풀 변수
+_pool: Optional[asyncpg.Pool] = None
 
 
-async def close_postgres():
-    global conn
-    if conn is not None:
-        await conn.close()
-        print("❌ Postgres 연결 종료")
+async def init_db(dsn: str):
+    global _pool
+    if _pool is None:
+        pool = asyncpg.create_pool(dsn=dsn) #dsn = "postgresql://postgres:PASSWORD@localhost:5432/DATABASE_NAME"
+        await pool
+        _pool = pool
 
 
-def get_connection():
-    return conn
+async def close_db():
+    global _pool
+    if _pool:
+        await _pool.close()
+        _pool = None
+
+
+@asynccontextmanager
+async def get_connection():
+    global _pool
+    if _pool is None:
+        raise RuntimeError("데이터베이스 풀이 초기화되지 않았습니다. init_db()를 먼저 호출하세요.")
+
+    async with _pool.acquire() as connection:
+        yield connection

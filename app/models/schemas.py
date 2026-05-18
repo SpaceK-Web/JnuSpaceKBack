@@ -13,7 +13,7 @@ class EntryResponse(BaseModel):
     detail: Optional[str] = None
     time: Optional[str] = None
     sentiment: str
-    is_custom: bool = False
+    is_system: bool = False
     description: Optional[str] = None
 
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from datetime import date
-from app.services.redis_buffer import get_daily_buffer, get_buffer_by_date
+from app.services.redis_buffer import get_daily_buffer
 from app.database.mongodb import get_db
 
 router = APIRouter(prefix="/api/dashboard", tags=["대시보드"])
@@ -8,7 +8,6 @@ router = APIRouter(prefix="/api/dashboard", tags=["대시보드"])
 
 @router.get("/today/{user_id}")
 async def get_today_summary(user_id: str):
-    """오늘의 실시간 요약 (Redis에서 조회)"""
     buffer = await get_daily_buffer(user_id)
 
     if not buffer:

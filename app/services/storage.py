@@ -1,22 +1,17 @@
-"""
-데이터 저장 서비스
-- 원본 대화 저장
-- 추출된 entries 저장
-- 일일 기록 관리
-"""
-from datetime import datetime
+import datetime
 from app.database.mongodb import get_db
+from app.models.schemas import EntryResponse
 
 
 async def save_conversation(user_id: str, conversation: str, metadata: dict = None) -> str:
     """
     원본 대화를 MongoDB에 저장
-    
+
     Args:
         user_id: 사용자 ID
         conversation: 대화 텍스트
         metadata: 추가 메타데이터 (선택)
-    
+
     Returns:
         저장된 문서 ID
     """
@@ -25,7 +20,7 @@ async def save_conversation(user_id: str, conversation: str, metadata: dict = No
     document = {
         "user_id": user_id,
         "conversation": conversation,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.datetime.now(datetime.UTC),
         "metadata": metadata or {}
     }
     
@@ -33,7 +28,7 @@ async def save_conversation(user_id: str, conversation: str, metadata: dict = No
     return str(result.inserted_id)
 
 
-async def save_entries(user_id: str, entries: list[dict], conversation_id: str = None) -> str:
+async def save_entries(user_id: str, entries: list[EntryResponse], conversation_id: str = None) -> str:
     """
     추출된 entries를 MongoDB에 저장
     
@@ -51,15 +46,15 @@ async def save_entries(user_id: str, entries: list[dict], conversation_id: str =
         "user_id": user_id,
         "entries": entries,
         "conversation_id": conversation_id,
-        "timestamp": datetime.utcnow(),
-        "date": datetime.utcnow().strftime("%Y-%m-%d")
+        "timestamp": datetime.datetime.now(datetime.UTC),
+        "date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
     }
     
     result = await db.extracted_entries.insert_one(document)
     return str(result.inserted_id)
 
 
-async def save_to_daily_record(user_id: str, entries: list[dict], date_str: str = None) -> str:
+async def save_to_daily_record(user_id: str, entries: list[EntryResponse], date_str: str = None) -> str:
     """
     일일 기록으로 저장 (upsert)
     같은 날짜에 이미 기록이 있으면 append
@@ -75,15 +70,15 @@ async def save_to_daily_record(user_id: str, entries: list[dict], date_str: str 
     db = get_db()
     
     if date_str is None:
-        date_str = datetime.utcnow().strftime("%Y-%m-%d")
+        date_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
     
     # 같은 날짜의 기록이 있는지 확인 후 append 또는 새로 생성
     result = await db.daily_records.update_one(
         {"user_id": user_id, "date": date_str},
         {
             "$push": {"entries": {"$each": entries}},
-            "$setOnInsert": {"created_at": datetime.utcnow()},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$setOnInsert": {"created_at": datetime.datetime.now(datetime.UTC)},
+            "$set": {"updated_at": datetime.datetime.now(datetime.UTC)}
         },
         upsert=True
     )
@@ -181,7 +176,7 @@ async def get_recent_sentiments(user_id: str, days: int = 7) -> list[dict]:
     db = get_db()
     
     from datetime import timedelta
-    start_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    start_date = (datetime.datetime.now(datetime.UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
     
     cursor = db.daily_records.find(
         {

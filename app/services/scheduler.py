@@ -7,15 +7,14 @@ from app.services.preferred_keys import promote_custom_key
 
 scheduler = AsyncIOScheduler()
 
-
+"""지금은 안 씀. 추후 선제 질문 기능을 위해 남겨둠"""
 async def flush_daily_records():
-    """매일 23:50 - Redis 일일 버퍼를 MongoDB로 이동"""
 
     r = get_redis()
     db = get_db()
     today = date.today().isoformat()
 
-    # 모든 daily:*:오늘날짜 키 스캔
+    #모든 daily:*:오늘날짜 키 스캔
     cursor = 0
     pattern = f"daily:*:{today}"
 
@@ -29,10 +28,10 @@ async def flush_daily_records():
                     continue
 
                 record = json.loads(data)
-                # daily:user123:2026-03-19 → user123
+                #daily:user123:2026-03-19 → user123
                 user_id = key.split(":")[1]
 
-                # MongoDB에 저장
+                #MongoDB에 저장
                 document = {
                     "user_id": user_id,
                     "date": today,
@@ -40,19 +39,18 @@ async def flush_daily_records():
                     "flushed_at": date.today().isoformat()
                 }
 
-                # upsert: 같은 날짜에 이미 있으면 업데이트
+                #upsert: 같은 날짜에 이미 있으면 업데이트
                 await db.daily_records.update_one(
                     {"user_id": user_id, "date": today},
                     {"$set": document},
                     upsert=True
                 )
 
-                # ── 자유 키 승격 처리 ──
+                #자유 키 승격 처리
                 for entry in record["entries"]:
                     if entry.get("is_custom") and entry.get("description"):
                         promote_custom_key(entry["key"], entry["description"])
 
-                # Redis에서 삭제
                 await r.delete(key)
                 print(f"✅ Flush 완료: {user_id} / {today}")
 
@@ -64,7 +62,6 @@ async def flush_daily_records():
 
 
 def start_scheduler():
-    """스케줄러 시작"""
     scheduler.add_job(
         flush_daily_records,
         trigger="cron",
@@ -78,5 +75,4 @@ def start_scheduler():
 
 
 def stop_scheduler():
-    """스케줄러 종료"""
     scheduler.shutdown()
