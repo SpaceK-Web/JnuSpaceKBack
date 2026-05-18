@@ -1,5 +1,5 @@
 import json
-from datetime import date, timedelta
+from datetime import date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.database.redis_client import get_redis
 from app.database.mongodb import get_db
