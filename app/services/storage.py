@@ -1,201 +1,135 @@
 import datetime
-from app.database.mongodb import get_db
+import json
+
+from app.database.postgres import get_pool
 from app.models.schemas import EntryResponse
 
 
+def _to_dict(entry) -> dict:
+    if isinstance(entry, dict):
+        return entry
+    return entry.model_dump()
+
+
+def _parse_jsonb_list(raw) -> list:
+    """asyncpg JSONB 컬럼을 항상 Python list로 반환."""
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, str):
+        try:
+            result = json.loads(raw)
+            return result if isinstance(result, list) else []
+        except Exception:
+            return []
+    return []
+
+
 async def save_conversation(user_id: str, conversation: str, metadata: dict = None) -> str:
-    """
-    원본 대화를 MongoDB에 저장
-
-    Args:
-        user_id: 사용자 ID
-        conversation: 대화 텍스트
-        metadata: 추가 메타데이터 (선택)
-
-    Returns:
-        저장된 문서 ID
-    """
-    db = get_db()
-    
-    document = {
-        "user_id": user_id,
-        "conversation": conversation,
-        "timestamp": datetime.datetime.now(datetime.UTC),
-        "metadata": metadata or {}
-    }
-    
-    result = await db.conversations.insert_one(document)
-    return str(result.inserted_id)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO conversations (user_id, conversation, metadata)
+            VALUES ($1, $2, $3::jsonb)
+            RETURNING id
+            """,
+            user_id,
+            conversation,
+            json.dumps(metadata or {}, ensure_ascii=False),
+        )
+    return str(row["id"])
 
 
 async def save_entries(user_id: str, entries: list[EntryResponse], conversation_id: str = None) -> str:
-    """
-    추출된 entries를 MongoDB에 저장
-    
-    Args:
-        user_id: 사용자 ID
-        entries: 추출된 정보 리스트
-        conversation_id: 원본 대화 ID (선택)
-    
-    Returns:
-        저장된 문서 ID
-    """
-    db = get_db()
-    
-    document = {
-        "user_id": user_id,
-        "entries": entries,
-        "conversation_id": conversation_id,
-        "timestamp": datetime.datetime.now(datetime.UTC),
-        "date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
-    }
-    
-    result = await db.extracted_entries.insert_one(document)
-    return str(result.inserted_id)
+    pool = get_pool()
+    today = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
+    entries_data = [_to_dict(e) for e in entries]
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO extracted_entries (user_id, conversation_id, entries, date)
+            VALUES ($1, $2, $3::jsonb, $4)
+            RETURNING id
+            """,
+            user_id,
+            int(conversation_id) if conversation_id else None,
+            json.dumps(entries_data, ensure_ascii=False),
+            today,
+        )
+    return str(row["id"])
 
 
 async def save_to_daily_record(user_id: str, entries: list[EntryResponse], date_str: str = None) -> str:
-    """
-    일일 기록으로 저장 (upsert)
-    같은 날짜에 이미 기록이 있으면 append
-    
-    Args:
-        user_id: 사용자 ID
-        entries: 추출된 정보 리스트
-        date_str: 날짜 (YYYY-MM-DD), 기본값은 오늘
-    
-    Returns:
-        저장된 문서 ID
-    """
-    db = get_db()
-    
+    pool = get_pool()
     if date_str is None:
         date_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
-    
-    # 같은 날짜의 기록이 있는지 확인 후 append 또는 새로 생성
-    result = await db.daily_records.update_one(
-        {"user_id": user_id, "date": date_str},
-        {
-            "$push": {"entries": {"$each": entries}},
-            "$setOnInsert": {"created_at": datetime.datetime.now(datetime.UTC)},
-            "$set": {"updated_at": datetime.datetime.now(datetime.UTC)}
-        },
-        upsert=True
-    )
-    
-    return str(result.upserted_id) if result.upserted_id else "updated"
+
+    entries_data = [_to_dict(e) for e in entries]
+
+    async with pool.acquire() as conn:
+        existing = await conn.fetchrow(
+            "SELECT id, entries FROM daily_records WHERE user_id = $1 AND date = $2",
+            user_id, date_str,
+        )
+
+        if existing:
+            current = _parse_jsonb_list(existing["entries"])
+            merged = {e["key"]: e for e in current}
+            for entry in entries_data:
+                key = entry["key"]
+                merged[key] = {**merged[key], **entry} if key in merged else entry
+
+            await conn.execute(
+                """
+                UPDATE daily_records
+                SET entries = $1::jsonb, updated_at = NOW()
+                WHERE user_id = $2 AND date = $3
+                """,
+                json.dumps(list(merged.values()), ensure_ascii=False),
+                user_id, date_str,
+            )
+            return "updated"
+        else:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO daily_records (user_id, date, entries)
+                VALUES ($1, $2, $3::jsonb)
+                RETURNING id
+                """,
+                user_id, date_str,
+                json.dumps(entries_data, ensure_ascii=False),
+            )
+            return str(row["id"])
 
 
-async def get_user_conversations(
-    user_id: str, 
-    limit: int = 100, 
-    skip: int = 0
-) -> list[dict]:
-    """
-    사용자의 대화 기록 조회
-    
-    Args:
-        user_id: 사용자 ID
-        limit: 최대 개수
-        skip: 건너뛸 개수
-    
-    Returns:
-        대화 기록 리스트
-    """
-    db = get_db()
-    
-    cursor = db.conversations.find(
-        {"user_id": user_id}
-    ).sort("timestamp", -1).skip(skip).limit(limit)
-    
-    return await cursor.to_list(length=limit)
+async def get_daily_record(user_id: str, date_str: str = None) -> dict | None:
+    pool = get_pool()
+    if date_str is None:
+        date_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT entries FROM daily_records WHERE user_id = $1 AND date = $2",
+            user_id, date_str,
+        )
+    if not row:
+        return None
+    return {"entries": _parse_jsonb_list(row["entries"])}
 
 
-async def get_user_entries_by_date(
-    user_id: str, 
-    start_date: str, 
-    end_date: str
-) -> list[dict]:
-    """
-    날짜 범위로 사용자의 entries 조회
-    
-    Args:
-        user_id: 사용자 ID
-        start_date: 시작일 (YYYY-MM-DD)
-        end_date: 종료일 (YYYY-MM-DD)
-    
-    Returns:
-        일일 기록 리스트
-    """
-    db = get_db()
-    
-    cursor = db.daily_records.find(
-        {
-            "user_id": user_id,
-            "date": {"$gte": start_date, "$lte": end_date}
-        }
-    ).sort("date", -1)
-    
-    return await cursor.to_list(length=100)
+async def get_user_conversations(user_id: str, limit: int = 100, skip: int = 0) -> list[dict]:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, user_id, conversation, metadata, timestamp
+            FROM conversations
+            WHERE user_id = $1
+            ORDER BY timestamp DESC
+            OFFSET $2 LIMIT $3
+            """,
+            user_id, skip, limit,
+        )
+    return [dict(row) for row in rows]
 
 
-async def search_entries_by_key(user_id: str, key: str) -> list[dict]:
-    """
-    특정 키로 entries 검색
-    
-    Args:
-        user_id: 사용자 ID
-        key: 검색할 키 (예: "아침식사", "혈압")
-    
-    Returns:
-        검색 결과 리스트
-    """
-    db = get_db()
-    
-    cursor = db.daily_records.find(
-        {
-            "user_id": user_id,
-            "entries.key": key
-        }
-    ).sort("date", -1)
-    
-    return await cursor.to_list(length=50)
-
-
-async def get_recent_sentiments(user_id: str, days: int = 7) -> list[dict]:
-    """
-    최근 N일간의 감정 데이터 조회
-    
-    Args:
-        user_id: 사용자 ID
-        days: 조회할 일수
-    
-    Returns:
-        감정 데이터 리스트
-    """
-    db = get_db()
-    
-    from datetime import timedelta
-    start_date = (datetime.datetime.now(datetime.UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
-    
-    cursor = db.daily_records.find(
-        {
-            "user_id": user_id,
-            "date": {"$gte": start_date}
-        }
-    ).sort("date", 1)
-    
-    records = await cursor.to_list(length=days)
-    
-    # 감정 데이터 추출
-    sentiments = []
-    for record in records:
-        for entry in record.get("entries", []):
-            if "sentiment" in entry:
-                sentiments.append({
-                    "date": record["date"],
-                    "key": entry.get("key"),
-                    "sentiment": entry.get("sentiment")
-                })
-    
-    return sentiments

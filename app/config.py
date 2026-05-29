@@ -1,18 +1,20 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
 
 
 class Settings(BaseSettings):
-    # LLM 설정
-    LLM_PROVIDER: str = "ollama"  # "openai" 또는 "ollama"
-    OPENAI_API_KEY: str = Field(default="")  # 선택사항
+    # Ollama 설정
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "mistral"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
+    OLLAMA_MODEL: str = "gpt-oss:20b"
+
+    # RAG 설정
+    CHROMA_DB_PATH: str = "./data/chroma_db"
+    MEDICAL_DOCS_PATH: str = "./data/medical_docs"
+
+    # STT 설정
+    WHISPER_MODEL_SIZE: str = "small"  # tiny | base | small | medium | large-v3
 
     # DB 설정
-    MONGODB_URI: str = "mongodb://localhost:27017"
-    MONGODB_DB_NAME: str = "senior_care"
-    REDIS_URL: str = "redis://localhost:6379/0"
     POSTGRES_USERNAME: str = "user"
     POSTGRES_PASSWORD: str = "password"
     POSTGRES_DATABASE: str = "database"
